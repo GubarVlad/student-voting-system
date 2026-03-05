@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1e3a8a">
-  <title>Student Council Voting System</title>
+  <meta name="theme-color" content="#3253A4">
+  <title>Система голосования студсовета</title>
   <link rel="stylesheet" href="src/css/style.css">
 </head>
 <body>
@@ -12,11 +12,12 @@
   <nav class="navbar" id="navbar" style="display: none;">
     <div class="navbar-container">
       <div class="navbar-brand">
-        <h1>🗳️ Voting System</h1>
+        <img src="University.svg" alt="University Logo" class="navbar-logo">
+        <h1>Система голосования</h1>
       </div>
       <div class="navbar-menu">
         <span class="user-info" id="userInfo"></span>
-        <button class="btn-logout" id="btnLogout">Logout</button>
+        <button class="btn-logout" id="btnLogout">Выйти</button>
       </div>
     </div>
   </nav>
@@ -25,23 +26,33 @@
   <div id="loginPage" class="page active">
     <div class="login-container">
       <div class="login-card">
-        <h2>🗳️ Student Council Voting</h2>
-        <p class="subtitle">Enter your credentials to login</p>
+        <div class="login-logo-container">
+          <img src="University.svg" alt="University Logo" class="login-logo">
+        </div>
+        <h2>🗳️ Голосование студсовета</h2>
+        <p class="subtitle">Введите данные для входа</p>
         
-        <form id="loginForm" class="form">
+        <!-- Login Mode Toggle -->
+        <div class="login-mode-toggle">
+          <button type="button" class="toggle-btn active" data-mode="regular">Вход</button>
+          <button type="button" class="toggle-btn" data-mode="guest">Гостевой доступ</button>
+        </div>
+        
+        <!-- Regular Login Form -->
+        <form id="loginForm" class="form" data-mode="regular">
           <div class="form-group">
             <label for="loginEmail">Email</label>
             <input 
               type="email" 
               id="loginEmail" 
               class="form-input" 
-              placeholder="your@email.com"
+              placeholder="example@university.ru"
               required
             >
           </div>
 
           <div class="form-group">
-            <label for="loginPassword">Password</label>
+            <label for="loginPassword">Пароль</label>
             <input 
               type="password" 
               id="loginPassword" 
@@ -54,12 +65,34 @@
           <div id="loginError" class="error-message" style="display: none;"></div>
           
           <button type="submit" class="btn-primary btn-large" id="btnLogin">
-            Login
+            Войти
+          </button>
+        </form>
+
+        <!-- Guest Login Form -->
+        <form id="guestLoginForm" class="form" data-mode="guest" style="display: none;">
+          <div class="form-group">
+            <label for="guestCode">Код доступа</label>
+            <input 
+              type="text" 
+              id="guestCode" 
+              class="form-input" 
+              placeholder="Введите код доступа"
+              maxlength="6"
+              style="text-transform: uppercase;"
+              required
+            >
+          </div>
+
+          <div id="guestLoginError" class="error-message" style="display: none;"></div>
+          
+          <button type="submit" class="btn-primary btn-large" id="btnGuestLogin">
+            Войти как гость
           </button>
         </form>
 
         <div class="qr-login-hint">
-          <p>Or scan a QR code from your membership card</p>
+          <p>Или отсканируйте QR-код с вашей карты участника</p>
         </div>
       </div>
     </div>
@@ -69,17 +102,17 @@
   <div id="firstLoginPage" class="page">
     <div class="login-container">
       <div class="login-card">
-        <h2>Complete Your Profile</h2>
-        <p class="subtitle">We need a few details to get started</p>
+        <h2>Заполните профиль</h2>
+        <p class="subtitle">Для начала нужно заполнить данные</p>
         
         <form id="firstLoginForm" class="form">
           <div class="form-group">
-            <label for="userFullName">Full Name (ФИО)</label>
+            <label for="userFullName">Полное имя (ФИО)</label>
             <input 
               type="text" 
               id="userFullName" 
               class="form-input" 
-              placeholder="Ivan Petrov"
+              placeholder="Иван Петров"
               required
             >
           </div>
@@ -91,14 +124,14 @@
                 id="membershipConfirm"
                 required
               >
-              I confirm that I am an active member of the student council
+              Подтверждаю, что я действующий член студенческого совета
             </label>
           </div>
 
           <div id="firstLoginError" class="error-message" style="display: none;"></div>
           
           <button type="submit" class="btn-primary btn-large" id="btnCompleteProfile">
-            Continue to Voting
+            Продолжить к голосованию
           </button>
         </form>
       </div>
@@ -109,24 +142,43 @@
   <div id="adminPage" class="page">
     <div class="container">
       <div class="page-header">
-        <h1>Admin Dashboard</h1>
+        <h1>Панель администратора</h1>
         <div class="header-actions">
-          <button class="btn-primary" id="btnCreateVote">+ Create Vote</button>
+          <button class="btn-primary" id="btnCreateVote">+ Создать голосование</button>
         </div>
       </div>
 
       <!-- Tabs -->
       <div class="tabs">
-        <button class="tab-button active" data-tab="active-votes">Active Vote</button>
-        <button class="tab-button" data-tab="create-vote">Create Vote</button>
-        <button class="tab-button" data-tab="vote-history">History</button>
+        <button class="tab-button active" data-tab="active-votes">Активное голосование</button>
+        <button class="tab-button" data-tab="admin-voting">Проголосовать</button>
+        <button class="tab-button" data-tab="create-vote">Создать голосование</button>
+        <button class="tab-button" data-tab="vote-history">История</button>
+        <button class="tab-button" data-tab="participants">Участники</button>
       </div>
 
       <!-- Active Vote Tab -->
       <div class="tab-content active" id="active-votes">
         <div id="activeVoteSection">
           <div class="empty-state">
-            <p>No active vote</p>
+            <p>Нет активного голосования</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Voting Tab -->
+      <div class="tab-content" id="admin-voting">
+        <div id="adminVotingSection">
+          <div class="empty-state">
+            <p>Ожидание открытия голосования...</p>
+            <p class="small">Голосуйте вместе с участниками</p>
+          </div>
+        </div>
+        <div id="adminVoteConfirmation" class="card-large" style="display: none;">
+          <div class="success-message">
+            <h3>✅ Ваш голос учтён</h3>
+            <p>Спасибо за участие!</p>
+            <button class="btn-primary" id="btnBackToAdminDashboard">Назад</button>
           </div>
         </div>
       </div>
@@ -134,25 +186,25 @@
       <!-- Create Vote Tab -->
       <div class="tab-content" id="create-vote">
         <div class="card-large">
-          <h3>Create New Vote</h3>
+          <h3>Создать новое голосование</h3>
           <form id="createVoteForm" class="form">
             <div class="form-group">
-              <label for="voteQuestion">Question</label>
+              <label for="voteQuestion">Вопрос</label>
               <input 
                 type="text" 
                 id="voteQuestion" 
                 class="form-input"
-                placeholder="What should we vote on?"
+                placeholder="По какому вопросу голосуем?"
                 required
               >
             </div>
 
             <div class="form-group">
-              <label>Options (one per line)</label>
+              <label>Варианты (по одному в строке)</label>
               <textarea 
                 id="voteOptions" 
                 class="form-textarea"
-                placeholder="Yes&#10;No&#10;Abstain"
+                placeholder="Да&#10;Нет&#10;Воздержаться"
                 required
               ></textarea>
             </div>
@@ -161,14 +213,14 @@
               <div class="form-group">
                 <label>
                   <input type="checkbox" id="voteIsSecret">
-                  Secret Voting
+                  Тайное голосование
                 </label>
               </div>
             </div>
 
             <div id="createVoteError" class="error-message" style="display: none;"></div>
 
-            <button type="submit" class="btn-primary">Create Vote</button>
+            <button type="submit" class="btn-primary">Создать голосование</button>
           </form>
         </div>
       </div>
@@ -177,7 +229,38 @@
       <div class="tab-content" id="vote-history">
         <div id="historySection">
           <div class="empty-state">
-            <p>No voting history yet</p>
+            <p>История голосований пока пуста</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Participants Management Tab -->
+      <div class="tab-content" id="participants">
+        <div class="card-large">
+          <h3>Управление участниками</h3>
+          <div id="participantsSection">
+            <div class="empty-state">
+              <p>Загрузка участников...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Guest Access Section -->
+        <div class="card-large" style="margin-top: 2rem;">
+          <h3>Гостевой доступ</h3>
+          <div class="guest-access-panel">
+            <p>Генерируйте коды доступа для гостей</p>
+            <div class="action-buttons">
+              <button class="btn-primary" onclick="AdminModule.generateGuestCode()">
+                Создать код доступа для гостя
+              </button>
+            </div>
+            <div id="guestCodesSection" style="margin-top: 1.5rem;">
+              <h4>Активные коды доступа</h4>
+              <div id="guestCodesList">
+                <p style="color: var(--text-light); font-size: 0.9rem;">Коды еще не созданы</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -188,20 +271,48 @@
   <div id="memberPage" class="page">
     <div class="container">
       <div class="page-header">
-        <h1>Cast Your Vote</h1>
+        <h1>Панель участника</h1>
       </div>
 
-      <div id="memberVotingSection">
-        <div class="empty-state">
-          <p>Waiting for vote to open...</p>
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-button active" data-tab="member-voting">Голосование</button>
+        <button class="tab-button" data-tab="member-history">История голосований</button>
+        <button class="tab-button" data-tab="member-participants">Участники</button>
+      </div>
+
+      <!-- Voting Tab -->
+      <div class="tab-content active" id="member-voting">
+        <div id="memberVotingSection">
+          <div class="empty-state">
+            <p>Ожидание открытия голосования...</p>
+          </div>
+        </div>
+
+        <div id="voteConfirmation" class="card-large" style="display: none;">
+          <div class="success-message">
+            <h3>✅ Голос учтён</h3>
+            <p>Спасибо за участие!</p>
+            <button class="btn-primary" id="btnBackToMember">Назад</button>
+          </div>
         </div>
       </div>
 
-      <div id="voteConfirmation" class="card-large" style="display: none;">
-        <div class="success-message">
-          <h3>✅ Vote Recorded</h3>
-          <p>Thank you for voting!</p>
-          <button class="btn-primary" id="btnBackToMember">Back</button>
+      <!-- History Tab -->
+      <div class="tab-content" id="member-history">
+        <div id="memberHistorySection">
+          <div class="empty-state">
+            <p>Загрузка истории...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Participants Tab -->
+      <div class="tab-content" id="member-participants">
+        <div id="memberParticipantsSection">
+          <div class="empty-state">
+            <p>Загрузка списка участников...</p>
+          </div>
         </div>
       </div>
     </div>
@@ -211,16 +322,16 @@
   <div id="resultsPage" class="page">
     <div class="container">
       <div class="page-header">
-        <h1>Live Results</h1>
+        <h1>Результаты в реальном времени</h1>
         <div class="header-actions">
-          <button class="btn-secondary" id="btnFullscreen">Fullscreen</button>
-          <button class="btn-secondary" id="btnBackResults">Back</button>
+          <button class="btn-secondary" id="btnFullscreen">На весь экран</button>
+          <button class="btn-secondary" id="btnBackResults">Назад</button>
         </div>
       </div>
 
       <div id="resultsSection">
         <div class="empty-state">
-          <p>No active vote</p>
+          <p>Нет активного голосования</p>
         </div>
       </div>
 
