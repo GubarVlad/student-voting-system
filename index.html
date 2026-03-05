@@ -345,6 +345,24 @@
     </div>
   </div>
 
+  <!-- Public Vote View Page (No Auth Required) -->
+  <div id="publicVotePage" class="page">
+    <div class="container">
+      <div class="page-header">
+        <h1>📊 Результаты голосования</h1>
+        <div class="header-actions">
+          <button class="btn-secondary" id="btnBackPublicVote">Назад</button>
+        </div>
+      </div>
+
+      <div id="publicVoteSection">
+        <div class="empty-state">
+          <p>⏳ Загрузка голосования...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Loading Spinner -->
   <div id="loadingSpinner" class="loading-spinner" style="display: none;">
     <div class="spinner"></div>
@@ -362,6 +380,7 @@
   <script src="src/js/admin.js"></script>
   <script src="src/js/member.js"></script>
   <script src="src/js/results.js"></script>
+  <script src="src/js/public-vote.js"></script>
   <script src="src/js/router.js"></script>
   <script src="src/js/app.js"></script>
 </body>
