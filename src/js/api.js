@@ -166,6 +166,114 @@ const API = {
       );
   },
 
+  // ===== PUBLIC VOTING URL OPERATIONS (No Auth Required) =====
+
+  async getPublicVote(voteId) {
+    try {
+      const doc = await firebase.firestore()
+        .collection('votes')
+        .doc(voteId)
+        .get();
+      
+      if (!doc.exists) {
+        throw new Error('Голосование не найдено');
+      }
+      
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('❌ Error fetching public vote:', error);
+      throw new Error('Ошибка при загрузке голосования: ' + error.message);
+    }
+  },
+
+  async getPublicVoteByNumber(voteNumber) {
+    try {
+      const snapshot = await firebase.firestore()
+        .collection('votes')
+        .where('voteNumber', '==', voteNumber)
+        .limit(1)
+        .get();
+      
+      if (snapshot.empty) {
+        throw new Error('Голосование не найдено');
+      }
+      
+      const doc = snapshot.docs[0];
+      return { id: doc.id, ...doc.data() };
+    } catch (error) {
+      console.error('❌ Error fetching public vote by number:', error);
+      throw new Error('Ошибка при загрузке голосования: ' + error.message);
+    }
+  },
+
+  async getPublicVoteResults(voteId) {
+    try {
+      const responses = await this.getVoteResponses(voteId);
+      const vote = await this.getPublicVote(voteId);
+      
+      const results = this.calculateResults(responses, vote.options || []);
+      
+      return {
+        vote,
+        results,
+        responses
+      };
+    } catch (error) {
+      console.error('❌ Error fetching public vote results:', error);
+      throw new Error('Ошибка при загрузке результатов: ' + error.message);
+    }
+  },
+
+  subscribeToPublicVote(voteId, callback) {
+    return firebase.firestore()
+      .collection('votes')
+      .doc(voteId)
+      .onSnapshot(
+        doc => {
+          if (doc.exists) {
+            callback({ id: doc.id, ...doc.data() });
+          }
+        },
+        error => {
+          console.error('❌ Error subscribing to public vote:', error);
+          callback(null);
+        }
+      );
+  },
+
+  subscribeToPublicVoteResults(voteId, callback) {
+    // Subscribe to vote
+    const voteUnsubscribe = this.subscribeToPublicVote(voteId, async (vote) => {
+      if (!vote) {
+        callback({ vote: null, results: null });
+        return;
+      }
+      
+      // Subscribe to responses
+      const responsesUnsubscribe = firebase.firestore()
+        .collection('responses')
+        .where('voteId', '==', voteId)
+        .onSnapshot(snapshot => {
+          const responses = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          
+          const results = this.calculateResults(responses, vote.options || []);
+          
+          callback({
+            vote,
+            results,
+            responses
+          });
+        });
+      
+      return responsesUnsubscribe;
+    });
+
+    return voteUnsubscribe;
+  },
+
   // ===== RESPONSE OPERATIONS =====
 
   async submitResponse(voteId, userId, selectedOption, userName = '') {

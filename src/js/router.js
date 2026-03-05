@@ -12,10 +12,12 @@ const Router = {
     switch (pageName) {
       case 'login':
         this.showPage('loginPage');
+        this.showNavbar(false);
         break;
 
       case 'firstLogin':
         this.showPage('firstLoginPage');
+        this.showNavbar(false);
         break;
 
       case 'admin':
@@ -24,6 +26,7 @@ const Router = {
           return;
         }
         this.showPage('adminPage');
+        this.showNavbar(true);
         if (!window.adminInitialized) {
           AdminModule.init();
           window.adminInitialized = true;
@@ -36,6 +39,7 @@ const Router = {
           return;
         }
         this.showPage('memberPage');
+        this.showNavbar(true);
         if (!window.memberInitialized) {
           MemberModule.init();
           window.memberInitialized = true;
@@ -48,8 +52,18 @@ const Router = {
           return;
         }
         this.showPage('resultsPage');
+        this.showNavbar(true);
         if (params) {
           ResultsModule.init(params);
+        }
+        break;
+
+      case 'publicVote':
+        // Public vote view - no authentication required
+        this.showPage('publicVotePage');
+        this.showNavbar(false);
+        if (params && params.voteId) {
+          PublicVoteModule.init(params.voteId);
         }
         break;
 
@@ -70,6 +84,13 @@ const Router = {
 
   getCurrentPage() {
     return this.currentPage;
+  },
+
+  showNavbar(show = true) {
+    const navbar = document.getElementById('navbar');
+    if (navbar) {
+      navbar.style.display = show ? 'block' : 'none';
+    }
   }
 };
 
