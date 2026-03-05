@@ -20,7 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Check for URL parameters (QR code login)
-  const urlParams = new URLSearchParams(window.location.search);
+  // With hash routing, params are in the hash: /#/login?user=...&pass=...
+  const hash = window.location.hash;
+  const queryStart = hash.indexOf('?');
+  const urlParams = queryStart > -1 ? new URLSearchParams(hash.substring(queryStart)) : new URLSearchParams();
+  
   if (urlParams.has('user')) {
     const email = urlParams.get('user');
     document.getElementById('loginEmail').value = email;
@@ -29,10 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlParams.has('pass')) {
       const password = urlParams.get('pass');
       document.getElementById('loginPassword').value = password;
-      // Trigger login automatically
-      AuthModule.handleLogin(email, password);
+      // Trigger login automatically after a brief delay to ensure page is ready
+      setTimeout(() => {
+        AuthModule.handleLogin(email, password);
+      }, 100);
     } else {
-      document.getElementById('loginEmail').focus();
+      document.getElementById('loginPassword').focus();
     }
   }
 
