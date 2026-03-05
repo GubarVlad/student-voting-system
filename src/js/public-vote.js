@@ -2,10 +2,12 @@
 const PublicVoteModule = {
   currentVoteId: null,
   unsubscribe: null,
+  backButtonInitialized: false,
 
   async init(voteId) {
     console.log('🔓 Initializing Public Vote Module for vote:', voteId);
     this.currentVoteId = voteId;
+    this.backButtonInitialized = false;
 
     const section = document.getElementById('publicVoteSection');
     section.innerHTML = '<div class="empty-state"><p>⏳ Загрузка голосования...</p></div>';
@@ -20,6 +22,9 @@ const PublicVoteModule = {
         console.log('Vote ID not found, trying as voteNumber:', voteId);
         vote = await API.getPublicVoteByNumber(voteId);
       }
+
+      // Setup back button once
+      this.setupBackButton();
 
       // Subscribe to real-time updates
       this.unsubscribe = API.subscribeToPublicVoteResults(vote.id, (data) => {
@@ -109,12 +114,12 @@ const PublicVoteModule = {
     `;
 
     section.innerHTML = resultsHTML;
-
-    // Add button styling if needed
-    this.setupBackButton();
   },
 
   setupBackButton() {
+    if (this.backButtonInitialized) return;
+    this.backButtonInitialized = true;
+
     const btnBack = document.getElementById('btnBackPublicVote');
     if (btnBack) {
       btnBack.addEventListener('click', (e) => {
@@ -124,7 +129,7 @@ const PublicVoteModule = {
           this.unsubscribe();
         }
         history.back();
-      }, { once: true });
+      });
     }
   },
 

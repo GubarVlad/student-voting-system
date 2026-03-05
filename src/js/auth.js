@@ -2,10 +2,18 @@
 const AuthModule = {
   currentUser: null,
   userProfile: null,
+  authInitialized: false,
 
   async init() {
     // Listen for auth state changes
     API.onAuthStateChange(async (user) => {
+      // Check if we're on a public vote page - don't redirect
+      if (this.isPublicVotePage()) {
+        console.log('🔓 On public vote page, skipping auth redirect');
+        this.authInitialized = true;
+        return;
+      }
+
       this.currentUser = user;
       
       if (user) {
@@ -18,7 +26,27 @@ const AuthModule = {
         console.log('✅ User logged out');
         this.onLogoutSuccess();
       }
+      
+      this.authInitialized = true;
     });
+  },
+
+  isPublicVotePage() {
+    // Check if current URL is a public vote page
+    const hash = window.location.hash;
+    const pathname = window.location.pathname;
+    
+    // Check hash-based routing: /#/vote/xxxx
+    if (hash && hash.includes('#/vote/')) {
+      return true;
+    }
+    
+    // Check path-based routing: /vote/xxxx
+    if (pathname && pathname.includes('/vote/')) {
+      return true;
+    }
+    
+    return false;
   },
 
   async handleLogin(email, password) {
@@ -137,22 +165,32 @@ const AuthModule = {
       const user = result.user;
 
       // Create guest user profile in Firestore
+      const guestProfile = {
+        role: 'member',
+        fullName: 'Гость',
+        firstLoginCompleted: true,
+        guestCode: guestCode,
+        createdAt: firebase.firestore.Timestamp.now()
+      };
+
       await firebase.firestore()
         .collection('users')
         .doc(user.uid)
-        .set({
-          role: 'member',
-          fullName: 'Гость',
-          firstLoginCompleted: true,
-          guestCode: guestCode,
-          createdAt: firebase.firestore.Timestamp.now()
-        });
+        .set(guestProfile);
 
       // Mark guest code as used
       await API.useGuestCode(guestCode, user.uid, 'Гость');
 
+      // Manually set the user profile and navigate (don't rely on auth listener alone)
+      this.currentUser = user;
+      this.userProfile = guestProfile;
+      
       console.log('✅ Guest access granted');
-      // Firebase auth state change will handle navigation
+      
+      // Navigate to member page
+      showPage('member');
+      document.getElementById('navbar').style.display = '';
+      updateNavbar();
     } catch (error) {
       console.error('Guest login error:', error);
       errorEl.textContent = error.message || 'Ошибка входа';
@@ -181,12 +219,20 @@ const AuthModule = {
   },
 
   onLogoutSuccess() {
+    // Don't redirect if we're on a public vote page
+    if (this.isPublicVotePage()) {
+      console.log('🔓 On public vote page, skipping logout redirect');
+      return;
+    }
+
     // Hide navbar
     document.getElementById('navbar').style.display = 'none';
     
     // Reset forms
-    document.getElementById('loginForm').reset();
-    document.getElementById('firstLoginForm').reset();
+    const loginForm = document.getElementById('loginForm');
+    const firstLoginForm = document.getElementById('firstLoginForm');
+    if (loginForm) loginForm.reset();
+    if (firstLoginForm) firstLoginForm.reset();
     
     // Show login page
     showPage('login');
