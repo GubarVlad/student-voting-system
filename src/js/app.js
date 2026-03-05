@@ -24,7 +24,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (urlParams.has('user')) {
     const email = urlParams.get('user');
     document.getElementById('loginEmail').value = email;
-    document.getElementById('loginEmail').focus();
+    
+    // Auto-login if password is also provided
+    if (urlParams.has('pass')) {
+      const password = urlParams.get('pass');
+      document.getElementById('loginPassword').value = password;
+      // Trigger login automatically
+      AuthModule.handleLogin(email, password);
+    } else {
+      document.getElementById('loginEmail').focus();
+    }
   }
 
   console.log('✅ Application initialized successfully');
