@@ -1,0 +1,33 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "responses",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "voteId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "votes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isOpen",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

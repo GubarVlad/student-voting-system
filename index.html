@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1e3a8a">
+  <title>Student Council Voting System</title>
+  <link rel="stylesheet" href="src/css/style.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar" id="navbar" style="display: none;">
+    <div class="navbar-container">
+      <div class="navbar-brand">
+        <h1>🗳️ Voting System</h1>
+      </div>
+      <div class="navbar-menu">
+        <span class="user-info" id="userInfo"></span>
+        <button class="btn-logout" id="btnLogout">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Login Page -->
+  <div id="loginPage" class="page active">
+    <div class="login-container">
+      <div class="login-card">
+        <h2>🗳️ Student Council Voting</h2>
+        <p class="subtitle">Enter your credentials to login</p>
+        
+        <form id="loginForm" class="form">
+          <div class="form-group">
+            <label for="loginEmail">Email</label>
+            <input 
+              type="email" 
+              id="loginEmail" 
+              class="form-input" 
+              placeholder="your@email.com"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input 
+              type="password" 
+              id="loginPassword" 
+              class="form-input" 
+              placeholder="••••••••"
+              required
+            >
+          </div>
+
+          <div id="loginError" class="error-message" style="display: none;"></div>
+          
+          <button type="submit" class="btn-primary btn-large" id="btnLogin">
+            Login
+          </button>
+        </form>
+
+        <div class="qr-login-hint">
+          <p>Or scan a QR code from your membership card</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- First Login (Profile Completion) Page -->
+  <div id="firstLoginPage" class="page">
+    <div class="login-container">
+      <div class="login-card">
+        <h2>Complete Your Profile</h2>
+        <p class="subtitle">We need a few details to get started</p>
+        
+        <form id="firstLoginForm" class="form">
+          <div class="form-group">
+            <label for="userFullName">Full Name (ФИО)</label>
+            <input 
+              type="text" 
+              id="userFullName" 
+              class="form-input" 
+              placeholder="Ivan Petrov"
+              required
+            >
+          </div>
+
+          <div class="form-group checkbox">
+            <label>
+              <input 
+                type="checkbox" 
+                id="membershipConfirm"
+                required
+              >
+              I confirm that I am an active member of the student council
+            </label>
+          </div>
+
+          <div id="firstLoginError" class="error-message" style="display: none;"></div>
+          
+          <button type="submit" class="btn-primary btn-large" id="btnCompleteProfile">
+            Continue to Voting
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Dashboard Page -->
+  <div id="adminPage" class="page">
+    <div class="container">
+      <div class="page-header">
+        <h1>Admin Dashboard</h1>
+        <div class="header-actions">
+          <button class="btn-primary" id="btnCreateVote">+ Create Vote</button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-button active" data-tab="active-votes">Active Vote</button>
+        <button class="tab-button" data-tab="create-vote">Create Vote</button>
+        <button class="tab-button" data-tab="vote-history">History</button>
+      </div>
+
+      <!-- Active Vote Tab -->
+      <div class="tab-content active" id="active-votes">
+        <div id="activeVoteSection">
+          <div class="empty-state">
+            <p>No active vote</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create Vote Tab -->
+      <div class="tab-content" id="create-vote">
+        <div class="card-large">
+          <h3>Create New Vote</h3>
+          <form id="createVoteForm" class="form">
+            <div class="form-group">
+              <label for="voteQuestion">Question</label>
+              <input 
+                type="text" 
+                id="voteQuestion" 
+                class="form-input"
+                placeholder="What should we vote on?"
+                required
+              >
+            </div>
+
+            <div class="form-group">
+              <label>Options (one per line)</label>
+              <textarea 
+                id="voteOptions" 
+                class="form-textarea"
+                placeholder="Yes&#10;No&#10;Abstain"
+                required
+              ></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="voteIsSecret">
+                  Secret Voting
+                </label>
+              </div>
+            </div>
+
+            <div id="createVoteError" class="error-message" style="display: none;"></div>
+
+            <button type="submit" class="btn-primary">Create Vote</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Vote History Tab -->
+      <div class="tab-content" id="vote-history">
+        <div id="historySection">
+          <div class="empty-state">
+            <p>No voting history yet</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Member Voting Page -->
+  <div id="memberPage" class="page">
+    <div class="container">
+      <div class="page-header">
+        <h1>Cast Your Vote</h1>
+      </div>
+
+      <div id="memberVotingSection">
+        <div class="empty-state">
+          <p>Waiting for vote to open...</p>
+        </div>
+      </div>
+
+      <div id="voteConfirmation" class="card-large" style="display: none;">
+        <div class="success-message">
+          <h3>✅ Vote Recorded</h3>
+          <p>Thank you for voting!</p>
+          <button class="btn-primary" id="btnBackToMember">Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Page -->
+  <div id="resultsPage" class="page">
+    <div class="container">
+      <div class="page-header">
+        <h1>Live Results</h1>
+        <div class="header-actions">
+          <button class="btn-secondary" id="btnFullscreen">Fullscreen</button>
+          <button class="btn-secondary" id="btnBackResults">Back</button>
+        </div>
+      </div>
+
+      <div id="resultsSection">
+        <div class="empty-state">
+          <p>No active vote</p>
+        </div>
+      </div>
+
+      <!-- Projector Mode Container -->
+      <div id="projectorMode" class="projector-container" style="display: none;">
+        <div class="projector-content">
+          <h2 id="projectorQuestion"></h2>
+          <div id="projectorResults"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+
+  <!-- Application Scripts -->
+  <script src="src/js/firebase-config.js"></script>
+  <script src="src/js/api.js"></script>
+  <script src="src/js/auth.js"></script>
+  <script src="src/js/admin.js"></script>
+  <script src="src/js/member.js"></script>
+  <script src="src/js/results.js"></script>
+  <script src="src/js/router.js"></script>
+  <script src="src/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Environment variables (should not be in frontend anyway)
+.env
+.env.local
+
+# Service account keys
+serviceAccountKey.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs (not needed for static deployment)
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.cache/
