@@ -28,7 +28,7 @@ const AuthModule = {
     try {
       errorEl.style.display = 'none';
       btnEl.disabled = true;
-      btnEl.textContent = 'Logging in...';
+      btnEl.textContent = 'Вход...';
 
       const result = await API.loginUser(email, password);
       const user = result.user;
@@ -38,13 +38,18 @@ const AuthModule = {
       
       if (!profile || !profile.firstLoginCompleted) {
         // Show first login page
-        showPage('firstLoginPage');
+        showPage('firstLogin');
       } else {
+        // **CRITICAL FIX:** Update AuthModule.userProfile BEFORE navigating
+        // This ensures Router's role checks use correct profile data
+        this.userProfile = profile;
+        this.currentUser = user;
+        
         // Determine which page to show based on role
         if (profile.role === 'admin') {
-          showPage('adminPage');
+          showPage('admin');
         } else {
-          showPage('memberPage');
+          showPage('member');
         }
       }
     } catch (error) {
@@ -53,7 +58,7 @@ const AuthModule = {
       errorEl.style.display = 'block';
     } finally {
       btnEl.disabled = false;
-      btnEl.textContent = 'Login';
+      btnEl.textContent = 'Войти';
     }
   },
 
@@ -64,26 +69,32 @@ const AuthModule = {
     try {
       errorEl.style.display = 'none';
       btnEl.disabled = true;
-      btnEl.textContent = 'Saving...';
+      btnEl.textContent = 'Сохранение...';
 
       const user = API.getCurrentUser();
-      if (!user) throw new Error('No user found');
+      if (!user) throw new Error('Пользователь не найден');
+
+      // **FIX:** Ensure role is set (default to 'member')
+      const existingProfile = await API.getUserProfile(user.uid);
+      const userRole = existingProfile?.role || 'member';
 
       // Update user profile
       await API.updateUserProfile(user.uid, {
         fullName,
+        role: userRole,
         firstLoginCompleted: true,
         completedAt: new Date().toISOString()
       });
 
       // Refresh user profile
       this.userProfile = await API.getUserProfile(user.uid);
+      this.currentUser = user;
 
       // Navigate based on role
       if (this.userProfile.role === 'admin') {
-        showPage('adminPage');
+        showPage('admin');
       } else {
-        showPage('memberPage');
+        showPage('member');
       }
     } catch (error) {
       console.error('First login error:', error);
@@ -91,17 +102,64 @@ const AuthModule = {
       errorEl.style.display = 'block';
     } finally {
       btnEl.disabled = false;
-      btnEl.textContent = 'Continue to Voting';
+      btnEl.textContent = 'Продолжить к голосованию';
     }
   },
 
   async handleLogout() {
     try {
       await API.logoutUser();
-      showPage('loginPage');
+      showPage('login');
       console.log('✅ Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
+    }
+  },
+
+  async handleGuestAccess(guestCode) {
+    const errorEl = document.getElementById('guestLoginError');
+    const btnEl = document.getElementById('btnGuestLogin');
+    
+    try {
+      errorEl.style.display = 'none';
+      btnEl.disabled = true;
+      btnEl.textContent = 'Проверка...';
+
+      // Validate guest code
+      if (!guestCode || guestCode.trim().length === 0) {
+        throw new Error('Пожалуйста, введите код доступа');
+      }
+
+      await API.validateGuestCode(guestCode);
+      
+      // Sign in anonymously with Firebase
+      const result = await firebase.auth().signInAnonymously();
+      const user = result.user;
+
+      // Create guest user profile in Firestore
+      await firebase.firestore()
+        .collection('users')
+        .doc(user.uid)
+        .set({
+          role: 'member',
+          fullName: 'Гость',
+          firstLoginCompleted: true,
+          guestCode: guestCode,
+          createdAt: firebase.firestore.Timestamp.now()
+        });
+
+      // Mark guest code as used
+      await API.useGuestCode(guestCode, user.uid, 'Гость');
+
+      console.log('✅ Guest access granted');
+      // Firebase auth state change will handle navigation
+    } catch (error) {
+      console.error('Guest login error:', error);
+      errorEl.textContent = error.message || 'Ошибка входа';
+      errorEl.style.display = 'block';
+    } finally {
+      btnEl.disabled = false;
+      btnEl.textContent = 'Войти как гость';
     }
   },
 
@@ -114,11 +172,11 @@ const AuthModule = {
     if (!this.userProfile) return;
 
     if (!this.userProfile.firstLoginCompleted) {
-      showPage('firstLoginPage');
+      showPage('firstLogin');
     } else if (this.userProfile.role === 'admin') {
-      showPage('adminPage');
+      showPage('admin');
     } else {
-      showPage('memberPage');
+      showPage('member');
     }
   },
 
@@ -131,19 +189,19 @@ const AuthModule = {
     document.getElementById('firstLoginForm').reset();
     
     // Show login page
-    showPage('loginPage');
+    showPage('login');
   },
 
   getErrorMessage(code) {
     const messages = {
-      'auth/user-not-found': 'User not found. Please check your email.',
-      'auth/wrong-password': 'Incorrect password. Please try again.',
-      'auth/invalid-email': 'Invalid email address.',
-      'auth/user-disabled': 'This account has been disabled.',
-      'auth/too-many-requests': 'Too many login attempts. Please try again later.',
-      'auth/email-already-in-use': 'This email is already in use.'
+      'auth/user-not-found': 'Пользователь не найден. Проверьте email.',
+      'auth/wrong-password': 'Неверный пароль. Попробуйте снова.',
+      'auth/invalid-email': 'Некорректный email.',
+      'auth/user-disabled': 'Этот аккаунт отключён.',
+      'auth/too-many-requests': 'Слишком много попыток входа. Повторите позже.',
+      'auth/email-already-in-use': 'Этот email уже используется.'
     };
-    return messages[code] || 'An error occurred. Please try again.';
+    return messages[code] || 'Произошла ошибка. Попробуйте снова.';
   },
 
   isLoggedIn() {
@@ -155,11 +213,12 @@ const AuthModule = {
   },
 
   isMember() {
-    return this.userProfile?.role === 'member';
+    // Members include both regular members and guests (who have role='member')
+    return this.userProfile?.role === 'member' || this.userProfile?.role === 'guest';
   },
 
   getUserName() {
-    return this.userProfile?.fullName || this.currentUser?.email || 'User';
+    return this.userProfile?.fullName || this.currentUser?.email || 'Пользователь';
   }
 };
 

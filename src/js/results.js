@@ -13,14 +13,16 @@ const ResultsModule = {
       this.vote = await API.getVote(voteId);
       if (!this.vote) {
         document.getElementById('resultsSection').innerHTML = `
-          <div class="error-message">Vote not found</div>
+          <div class="error-message">Голосование не найдено</div>
         `;
         return;
       }
 
       // Subscribe to responses for live updates
       this.responsesUnsubscribe = API.subscribeToResponses(voteId, (responses) => {
-        this.displayResults(responses);
+        this.displayResults(responses).catch(error => {
+          console.error('❌ Error rendering results:', error);
+        });
       });
 
       // Setup event listeners
@@ -35,13 +37,21 @@ const ResultsModule = {
     } catch (error) {
       console.error('Error loading results:', error);
       document.getElementById('resultsSection').innerHTML = `
-        <div class="error-message">Error loading results</div>
+        <div class="error-message">Ошибка загрузки результатов</div>
       `;
     }
   },
 
-  displayResults(responses) {
+  async displayResults(responses) {
+    // Defensive check for vote data
+    if (!this.vote || !this.vote.question || !Array.isArray(this.vote.options)) {
+      console.error('Invalid vote data:', this.vote);
+      document.getElementById('resultsSection').innerHTML = '<div class="error-message">Ошибка: некорректные данные голосования</div>';
+      return;
+    }
+
     const results = API.calculateResults(responses, this.vote.options);
+    const outcome = await API.getWinningOption(this.vote, responses, results);
     const section = document.getElementById('resultsSection');
 
     let html = `
@@ -49,8 +59,8 @@ const ResultsModule = {
         <div class="results-header">
           <h3>${this.escapeHtml(this.vote.question)}</h3>
           <div class="results-stats">
-            <span class="stat">Total Responses: <strong>${results.totalResponses}</strong></span>
-            <span class="stat">Type: <strong>${this.vote.isSecret ? 'Secret' : 'Open'}</strong></span>
+            <span class="stat">Всего ответов: <strong>${results.totalResponses}</strong></span>
+            <span class="stat">Тип: <strong>${this.vote.isSecret ? 'Тайное' : 'Открытое'}</strong></span>
           </div>
         </div>
 
@@ -58,11 +68,13 @@ const ResultsModule = {
     `;
 
     results.options.forEach(option => {
+      const isWinner = option.option === outcome.winnerOption;
+      const winnerBadge = isWinner && option.count > 0 ? ' 🏆' : '';
       html += `
         <div class="result-item">
           <div class="result-header">
-            <span>${this.escapeHtml(option.option)}</span>
-            <span class="result-count">${option.count} votes</span>
+            <span>${this.escapeHtml(option.option)}${winnerBadge}</span>
+            <span class="result-count">${option.count} голосов</span>
           </div>
           <div class="progress-bar">
             <div class="progress-fill" style="width: ${option.percentage}%"></div>
@@ -74,11 +86,12 @@ const ResultsModule = {
 
     html += `
         </div>
+        ${outcome.tieResolvedByChairman ? '<p class="small" style="margin-top: 0.75rem; color: var(--primary-color);"><strong>Равенство голосов решено голосом председателя.</strong></p>' : ''}
 
         ${AuthModule.isAdmin() ? `
           <div class="action-buttons">
             <button class="btn-primary" onclick="ResultsModule.handleExport()">
-              Export Results
+              Экспорт результатов
             </button>
           </div>
         ` : ''}
@@ -107,8 +120,8 @@ const ResultsModule = {
           <div class="option-info">
             <h4>${this.escapeHtml(option.option)}</h4>
             <div class="votes-info">
-              <span>${option.count} votes</span>
-              <span className="percentage">${option.percentage.toFixed(1)}%</span>
+              <span>${option.count} голосов</span>
+              <span class="percentage">${option.percentage.toFixed(1)}%</span>
             </div>
           </div>
           <div class="large-progress-bar">
@@ -128,23 +141,30 @@ const ResultsModule = {
       // Enter fullscreen
       projector.style.display = '';
       
-      if (projector.requestFullscreen) {
-        projector.requestFullscreen();
-      } else if (projector.webkitRequestFullscreen) {
-        projector.webkitRequestFullscreen();
+      // Try to enter fullscreen
+      const fsPromise = projector.requestFullscreen?.() || 
+                       projector.webkitRequestFullscreen?.() ||
+                       projector.mozRequestFullScreen?.() ||
+                       projector.msRequestFullscreen?.();
+      
+      if (fsPromise && typeof fsPromise.catch === 'function') {
+        fsPromise.catch(err => {
+          console.warn('Fullscreen request failed:', err);
+          // Fallback: keep projector visible even if fullscreen fails
+        });
       }
       
       this.isFullscreen = true;
-      document.getElementById('btnFullscreen').textContent = '⛶ Exit Fullscreen';
+      document.getElementById('btnFullscreen').textContent = '⛶ Выйти из полноэкранного';
     } else {
       // Exit fullscreen
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        (document.exitFullscreen?.() || document.webkitExitFullscreen?.());
       }
       
       projector.style.display = 'none';
       this.isFullscreen = false;
-      document.getElementById('btnFullscreen').textContent = '□ Fullscreen';
+      document.getElementById('btnFullscreen').textContent = '□ На весь экран';
     }
   },
 
@@ -175,10 +195,10 @@ const ResultsModule = {
       URL.revokeObjectURL(url);
 
       console.log('✅ Results exported');
-      alert('✅ Results exported successfully!');
+      alert('✅ Результаты успешно экспортированы!');
     } catch (error) {
       console.error('Error exporting:', error);
-      alert('❌ Error exporting results');
+      alert('❌ Ошибка экспорта результатов');
     }
   },
 

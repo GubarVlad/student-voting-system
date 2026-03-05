@@ -42,7 +42,15 @@ function showLoading(show = true) {
 
 // Utility function to show page (conflicts with Router, need to consolidate)
 function showPage(pageName) {
-  Router.navigate(pageName);
+  const pageMap = {
+    loginPage: 'login',
+    firstLoginPage: 'firstLogin',
+    adminPage: 'admin',
+    memberPage: 'member',
+    resultsPage: 'results'
+  };
+
+  Router.navigate(pageMap[pageName] || pageName);
 }
 
 window.showLoading = showLoading;
