@@ -153,6 +153,7 @@
         <button class="tab-button active" data-tab="active-votes">Активное голосование</button>
         <button class="tab-button" data-tab="admin-voting">Проголосовать</button>
         <button class="tab-button" data-tab="create-vote">Создать голосование</button>
+        <button class="tab-button" data-tab="prepared-votes">Подготовленные</button>
         <button class="tab-button" data-tab="vote-history">История</button>
         <button class="tab-button" data-tab="participants">Участники</button>
       </div>
@@ -220,8 +221,21 @@
 
             <div id="createVoteError" class="error-message" style="display: none;"></div>
 
-            <button type="submit" class="btn-primary">Создать голосование</button>
+            <div class="action-buttons">
+              <button type="submit" class="btn-primary" id="btnCreateVoteNow">Создать и открыть</button>
+              <button type="button" class="btn-secondary" id="btnCreatePreparedVote">Подготовить на потом</button>
+            </div>
           </form>
+        </div>
+      </div>
+
+      <!-- Prepared Votes Tab -->
+      <div class="tab-content" id="prepared-votes">
+        <div id="preparedVotesSection">
+          <div class="empty-state">
+            <p>Подготовленных голосований нет</p>
+            <p class="small">Создайте голосование и сохраните его на потом</p>
+          </div>
         </div>
       </div>
 
