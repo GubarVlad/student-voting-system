@@ -19,6 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Setup guest login form
+  document.getElementById('guestLoginForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const guestCode = document.getElementById('guestCode').value.trim().toUpperCase();
+    AuthModule.handleGuestAccess(guestCode);
+  });
+
   // Check for public vote URL first (no auth required)
   // Supports both /#/vote/3501 and /vote/3501 formats
   let isPublicVote = false;

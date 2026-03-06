@@ -14,8 +14,13 @@ const AdminModule = {
     // Setup event listeners
     document.getElementById('createVoteForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      this.handleCreateVote();
+      this.handleCreateVote(false);
     });
+
+    const createPreparedBtn = document.getElementById('btnCreatePreparedVote');
+    if (createPreparedBtn) {
+      createPreparedBtn.addEventListener('click', () => this.handleCreateVote(true));
+    }
 
     const createVoteBtn = document.getElementById('btnCreateVote');
     if (createVoteBtn) {
@@ -37,7 +42,7 @@ const AdminModule = {
     await this.loadVoteHistory();
   },
 
-  async handleCreateVote() {
+  async handleCreateVote(isPrepared = false) {
     const question = document.getElementById('voteQuestion').value.trim();
     const optionsText = document.getElementById('voteOptions').value;
     const isSecret = document.getElementById('voteIsSecret').checked;
@@ -47,7 +52,7 @@ const AdminModule = {
     try {
       errorEl.style.display = 'none';
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Создание...';
+      submitBtn.textContent = isPrepared ? 'Подготовка...' : 'Создание...';
 
       // Validate question
       if (!question) {
@@ -78,32 +83,108 @@ const AdminModule = {
         }
       }
 
-      // Create vote
-      const voteRef = await API.createVote({
+      const payload = {
         question,
         options,
         isSecret,
         createdBy: AuthModule.currentUser.uid,
         createdAt: new Date().toISOString()
-      });
+      };
 
-      console.log('✅ Vote created:', voteRef.id);
+      // Create vote (active or prepared)
+      const voteRef = isPrepared
+        ? await API.createPreparedVote(payload)
+        : await API.createVote(payload);
+
+      console.log(`✅ Vote ${isPrepared ? 'prepared' : 'created'}:`, voteRef.id);
 
       // Clear form
       document.getElementById('createVoteForm').reset();
       
       // Show success message
-      alert('✅ Голосование успешно создано!');
+      alert(isPrepared
+        ? '✅ Голосование подготовлено. Откройте вкладку "Подготовленные", чтобы запустить его.'
+        : '✅ Голосование успешно создано!');
       
-      // Switch to active votes tab
-      this.switchTab('active-votes');
+      // Switch to relevant tab
+      this.switchTab(isPrepared ? 'prepared-votes' : 'active-votes');
     } catch (error) {
       console.error('Error creating vote:', error);
       errorEl.textContent = error.message;
       errorEl.style.display = 'block';
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Создать голосование';
+      submitBtn.textContent = 'Создать и открыть';
+    }
+  },
+
+  async loadPreparedVotes() {
+    try {
+      const allVotes = await API.getAllVotes();
+      const votes = allVotes.filter(vote => vote.isPrepared && !vote.isOpen && !vote.isClosed);
+      const section = document.getElementById('preparedVotesSection');
+
+      if (!section) return;
+
+      if (votes.length === 0) {
+        section.innerHTML = `
+          <div class="empty-state">
+            <p>Подготовленных голосований нет</p>
+            <p class="small">Создайте голосование и сохраните его на потом</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '<div class="votes-list">';
+      votes.forEach(vote => {
+        const voteNumberText = vote.voteNumber ? `№${vote.voteNumber}` : 'Без номера';
+        const preparedDate = API.formatDate(vote.preparedAt || vote.createdAt);
+        html += `
+          <div class="vote-item">
+            <div class="vote-summary">
+              <h4>${voteNumberText} - ${this.escapeHtml(vote.question)}</h4>
+              <p class="meta">
+                Подготовлено: ${preparedDate} | Вариантов: ${(vote.options || []).length}
+              </p>
+              <p class="small" style="margin: 0.5rem 0 0;">${vote.isSecret ? '🔒 Тайное голосование' : '👁️ Открытое голосование'}</p>
+            </div>
+            <div class="vote-actions">
+              <button class="btn-small btn-primary" onclick="AdminModule.publishPreparedVote('${vote.id}')">Открыть голосование</button>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+
+      section.innerHTML = html;
+    } catch (error) {
+      console.error('Error loading prepared votes:', error);
+      const section = document.getElementById('preparedVotesSection');
+      if (section) {
+        section.innerHTML = '<div class="error-message">Ошибка загрузки подготовленных голосований</div>';
+      }
+    }
+  },
+
+  async publishPreparedVote(voteId) {
+    try {
+      if (this.activeVote && this.activeVote.id !== voteId) {
+        alert('❌ Сначала закройте текущее активное голосование, затем откройте подготовленное.');
+        return;
+      }
+
+      if (!confirm('Открыть это подготовленное голосование для всех участников?')) {
+        return;
+      }
+
+      await API.publishPreparedVote(voteId);
+      alert('✅ Голосование успешно открыто');
+      this.switchTab('active-votes');
+      this.loadPreparedVotes();
+    } catch (error) {
+      console.error('Error publishing prepared vote:', error);
+      alert('❌ Ошибка открытия подготовленного голосования');
     }
   },
 
@@ -396,6 +477,10 @@ const AdminModule = {
     // Reload history if switching to history tab
     if (tabName === 'vote-history') {
       this.loadVoteHistory();
+    }
+
+    if (tabName === 'prepared-votes') {
+      this.loadPreparedVotes();
     }
 
     // Load participants if switching to participants tab

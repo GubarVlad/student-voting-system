@@ -98,7 +98,26 @@ const API = {
         voteNumber,
         voteYear: createdAt.toDate().getFullYear(),
         isOpen: true,
-        isClosed: false
+        isClosed: false,
+        isPrepared: false
+      });
+  },
+
+  async createPreparedVote(voteData) {
+    const createdAt = firebase.firestore.Timestamp.now();
+    const voteNumber = await this.generateDailyVoteNumber(createdAt);
+
+    return firebase.firestore()
+      .collection('votes')
+      .add({
+        ...voteData,
+        createdAt,
+        voteNumber,
+        voteYear: createdAt.toDate().getFullYear(),
+        isOpen: false,
+        isClosed: false,
+        isPrepared: true,
+        preparedAt: createdAt
       });
   },
 
@@ -122,7 +141,11 @@ const API = {
     return firebase.firestore()
       .collection('votes')
       .doc(voteId)
-      .update({ isOpen: true });
+      .update({ isOpen: true, isPrepared: false, publishedAt: firebase.firestore.Timestamp.now() });
+  },
+
+  async publishPreparedVote(voteId) {
+    return this.openVote(voteId);
   },
 
   async closeVote(voteId) {
